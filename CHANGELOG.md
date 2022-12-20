@@ -1,4 +1,19 @@
 # Changelog
+## December 15, 2022
+## 3.28.5
+* [Bug Fix] Rnaseq adding no experimental conditions [PR #508](https://github.com/BV-BRC/BV-BRC-Web/pull/508)
+
+## December 14, 2022
+## 3.28.4
+* [Bug Fix] Fix trimming checkbox
+
+## 3.28.3
+* [Enhancement] Add flye to recipe list for CGA Service
+
+## December 13, 2022
+## 3.28.2
+* [Bug Fix] [PR #504](https://github.com/BV-BRC/BV-BRC-Web/pull/504)
+
 ## December 9, 2022
 ## 3.28.1
 * [Bug Fix] missed changing condition for paired end reads [PR #502](https://github.com/BV-BRC/BV-BRC-Web/pull/502)

@@ -266,7 +266,7 @@ define([
       assembly_values = this.checkBaseParameters(values, assembly_values);
 
       // get trimming value
-      if (this.trimming_true) {
+      if (this.trimming_true.checked) {
         assembly_values['trimming'] = true;
       } else {
         assembly_values['trimming'] = false;
@@ -794,7 +794,7 @@ define([
             label: 'HTSeq-DESeq', value: 'HTSeq-DESeq', selected: false, disabled: false
           },
           {
-            label: 'Tuxedo', value: 'RNA-Rocket', selected: false, disabled: false
+            label: 'Tuxedo', value: 'cufflinks', selected: false, disabled: false
           },
           {
             label: 'Host HISAT2', value: 'Host', selected: false, disabled: true
@@ -913,6 +913,9 @@ define([
       }
       if (condLibs.length) {
         assembly_values.experimental_conditions = condLibs;
+      }
+      else {
+        assembly_values.experimental_conditions = [];
       }
       singleList.forEach(function (libRecord) {
         var toAdd = {};
