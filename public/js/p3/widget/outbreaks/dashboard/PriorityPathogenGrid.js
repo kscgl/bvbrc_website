@@ -48,7 +48,22 @@ define([
 
       // Rebuild columns
       const columns = this.headers.reduce((cols, h) => {
-        cols[h] = {label: h, field: h, sortable: true};
+        if (h === 'Genus' || h === 'Family') {
+          cols[h] = {
+            label: h,
+            field: h,
+            sortable: true,
+            formatter: function (value, row) {
+              const taxonId = row[`taxon_${h.toLowerCase()}_id`];
+              if (value && taxonId) {
+                return `<a href="https://www.bv-brc.org/view/Taxonomy/${taxonId}" target="_blank">${value}</a>`;
+              }
+              return value || '';
+            }
+          };
+        } else {
+          cols[h] = { label: h, field: h, sortable: true };
+        }
         return cols;
       }, {});
 

@@ -184,10 +184,38 @@ define([
       this.viewer.addChild(this.webinars);
     },
 
+    _getTaxonIds: function (dataList, taxonRank) {
+      const query = `in(taxon_name,(${dataList.join(',')}))&eq(taxon_rank,${taxonRank})&select(taxon_name,taxon_id)&limit(1000)`;
+
+      return xhr.post('https://www.bv-brc.org/api/taxonomy', {
+        headers: {
+          'accept': 'application/json',
+          'content-type': 'application/rqlquery+x-www-form-urlencoded',
+          'X-Requested-With': null,
+          'Authorization': window.App?.authorizationToken || ''
+        },
+        data: query,
+        handleAs: 'json'
+      }).then(results => {
+        const taxonMap = {};
+        results.forEach(entry => {
+          taxonMap[entry.taxon_name] = entry.taxon_id;
+        });
+        return taxonMap;
+      }).catch(err => {
+        console.log(dataList.join(","));
+        console.error('XHR POST failed:', err.response?.text || err);
+        return {};
+      });
+    },
+
     _loadPriorityPathogenData: function () {
       return xhr.get(this.priorityPathogenListURL, {
         handleAs: 'text'
       }).then((csvText) => {
+        const genusSet = new Set();
+        const familySet = new Set();
+
         const lines = csvText.trim().split('\n');
         if (lines.length === 0) return null;
 
@@ -208,10 +236,30 @@ define([
             familyPriorityMap[family] = priority.toLowerCase().replace(/[^a-z]/g, '');
           }
 
+          const genus = row['Genus']?.trim();
+          if (genus) genusSet.add(genus);
+          if (family) familySet.add(family);
+
           return row;
         });
 
-        return {data, headers, familyPriorityMap};
+        const genusList = Array.from(genusSet);
+        const familyList = Array.from(familySet);
+
+        return Promise.all([
+          this._getTaxonIds(genusList, 'genus'),
+          this._getTaxonIds(familyList, 'family')
+        ]).then(([genusToTaxonId, familyToTaxonId]) => {
+          data.forEach(row => {
+            const genus = row['Genus']?.trim();
+            row.taxon_genus_id = genusToTaxonId[genus] || null;
+
+            const family = row['Family']?.trim();
+            row.taxon_family_id = familyToTaxonId[family] || null;
+          });
+
+          return {data, headers, familyPriorityMap};
+        });
       });
     },
 
