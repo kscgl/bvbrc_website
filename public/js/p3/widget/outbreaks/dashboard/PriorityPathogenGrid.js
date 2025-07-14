@@ -13,9 +13,6 @@ define([
     grid: null,
     data: null,
     headers: null,
-    highPriorityColor: '#ffcccc',
-    moderatePriorityColor: '#fff2cc',
-    lowPriorityColor: '#ccffcc',
 
     postCreate: function () {
       this.inherited(arguments);

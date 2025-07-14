@@ -38,6 +38,9 @@ define([
     perspectiveIconClass: '',
     title: '<h1 class="appHeader" style="color: #2a6d9e; margin-top: 10px; font-weight: bold;">Outbreak Response</h1>',
     priorityPathogenListURL: 'https://www.bv-brc.org/api/content/data/human_viral_pathogens.csv',
+    highPriorityColor: '#ffcccc',
+    moderatePriorityColor: '#fff2cc',
+    lowPriorityColor: '#ccffcc',
 
     onSetState: function (attr, oldVal, state) {
       if (!state) {
@@ -316,10 +319,7 @@ define([
 
     _createPriorityPathogenTable: function (familyPriorityMap) {
       const priorityColors = {
-        high: '#ffcccc',
-        lowmoderate: '#fff2cc',
-        moderate: '#fff2cc',
-        low: '#ccffcc'
+        high: this.highPriorityColor
       };
       const virusList = domConstruct.create('div', {
         className: 'section',
