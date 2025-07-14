@@ -1,13 +1,11 @@
 define([
   'dojo/_base/declare', 'dojo/_base/lang', 'dojo/request/xhr', 'dojox/xml/DomParser', 'dojo/dom-construct',
   '../../../util/PathJoin', '../../viewer/TabViewerBase', './../OutbreaksOverview', './../OutbreaksTab', './PriorityPathogenGrid',
-  '../OutbreaksTabContainer', '../OutbreaksPhylogenyTreeViewer', 'dojo/text!./OverviewDetails.html', 'dojo/text!./Webinars.html',
-  'dojo/text!./Contents.html'
+  '../OutbreaksTabContainer', 'dojo/text!./OverviewDetails.html', 'dojo/text!./Webinars.html', 'dojo/text!./Contents.html'
 ], function (
   declare, lang, xhr, domParser, domConstruct,
   PathJoin, TabViewerBase, OutbreaksOverview, OutbreaksTab, PriorityPathogenGrid,
-  OutbreaksTabContainer, OutbreaksPhylogenyTreeViewer, OverviewDetailsTemplate, WebinarsTemplate,
-  ContentsTemplate
+  OutbreaksTabContainer, OverviewDetailsTemplate, WebinarsTemplate, ContentsTemplate
 ) {
 
   function parseCSVLine(line) {
@@ -64,9 +62,7 @@ define([
       activeTab.set('visible', true);
       this.viewer.selectChild(activeTab);
 
-      if (active === 'phylogenetics') {
-        this.phylogenyH5N1.set('state', activeQueryState);
-      } else if (active === 'priority') {
+      if (active === 'priority') {
         this.priority.resizeGrid();
       } else {
         activeTab.set('state', activeQueryState);
@@ -154,7 +150,6 @@ define([
     _createTabs: function () {
       this._createOverviewTab();
       this._createPriorityPathogenTab();
-      //this._createPhylogeneticsTab();
       this._createWebinarsTab();
     },
 
@@ -187,103 +182,6 @@ define([
         templateString: WebinarsTemplate
       });
       this.viewer.addChild(this.webinars);
-    },
-
-    _createPhylogeneticsTab: function () {
-      // Initialize Phylogenetic Tree Viewer
-      const h5n1Decorator = 'vipr:';
-
-      const sharedSettings = {
-        shapes: ['square', 'diamond', 'triangle-up', 'triangle-down', 'cross', 'circle'],
-        sizes: [20, 60],
-        colorsAlt: ['#FF0000', '#000000', '#00FF00']
-      };
-
-      const h5n1Visualizations = [
-        ['Host', 'the host of the virus'],
-        ['Host_Group', 'the host group of the virus'],
-        ['Host_Group_Domestic_vs_Wild', 'the host range of the virus'],
-        ['Region', 'the geographic region of the virus'],
-        ['Country', 'the country of the virus'],
-        ['State', 'the state'],
-        ['Year', 'the year of the virus'],
-        ['Subtype', 'the sub type of the virus'],
-        ['H5_clade', 'the H5 clade']
-      ];
-
-      const h5n1NodeVisualizations = {};
-      const h5n1NodeLabels = {};
-
-      h5n1Visualizations.forEach(([key, description]) => {
-        h5n1NodeVisualizations[key] = lang.mixin({
-          label: key.replace(/_/g, ' '),
-          description: description,
-          field: null,
-          cladeRef: h5n1Decorator + key,
-          regex: false,
-          colors: 'category50'
-        }, sharedSettings);
-
-        h5n1NodeLabels[key] = {
-          label: key.replace(/_/g, ' '),
-          description: 'to use ' + key.replace(/_/g, ' ') + ' as part of node names',
-          propertyRef: h5n1Decorator + key,
-          selected: key === 'H5_clade',
-          showButton: true
-        };
-      });
-
-      const phylogenySegmentId = 'phylogenyH5N1';
-      this[phylogenySegmentId] = new OutbreaksPhylogenyTreeViewer({
-        title: 'H5N1 Segment 4 (HA)',
-        id: this.viewer.id + '_' + phylogenySegmentId,
-        phyloxmlTreeURL: 'https://www.bv-brc.org/api/content/phyloxml_trees/H5N1/h5n1_segment_4.xml',
-        updateState: true,
-        settings: {
-          border: '1px solid #909090',
-          enableDownloads: true,
-          enableDynamicSizing: true,
-          enableCollapseByFeature: true,
-          enableNodeVisualizations: true,
-          enableBranchVisualizations: false,
-          enableSubtreeDeletion: true,
-          nhExportWriteConfidences: true,
-          controls0Left: 20,
-          controls1Width: 120,
-          rootOffset: 220,
-          controls0Top: 10,
-          controls1Top: 10,
-          showSequenceButton: false,
-          showShortenNodeNamesButton: false,
-          showExternalLabelsButton: false,
-          showInternalLabelsButton: false,
-          showExternalNodesButton: false,
-          showInternalNodesButton: false
-        },
-        options: {
-          minBranchLengthValueToShow: 0.001,
-          minConfidenceValueToShow: 50,
-          initialNodeFillColorVisualization: 'Host Group (Domestic vs Wild)',
-          phylogram: true,
-          showConfidenceValues: false,
-          showExternalLabels: true,
-          showNodeName: true,
-          showNodeVisualizations: true,
-          showVisualizationsLegend: true,
-          visualizationsLegendOrientation: 'vertical',
-          visualizationsLegendXpos: 220,
-          visualizationsLegendYpos: 30
-        },
-        nodeVisualizations: h5n1NodeVisualizations,
-        specialVisualizations: h5n1NodeLabels
-      });
-
-      this.phylogenetics = new OutbreaksTabContainer({
-        title: 'Phylogenetics',
-        id: this.viewer.id + '_phylogenetics',
-        tabContainers: [this[phylogenySegmentId]]
-      });
-      this.viewer.addChild(this.phylogenetics);
     },
 
     _loadPriorityPathogenData: function () {
