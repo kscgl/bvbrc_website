@@ -351,14 +351,9 @@
 
 #bv-brc-home .bv-brc-bottom-left,
 #bv-brc-home .bv-brc-bottom-right,
-#bv-brc-outbreaks-section .card.active,
-#bv-brc-outbreaks-section .card.inactive {
+#bv-brc-outbreaks-section .card {
   background-color: var(--blue-light-bg);
   border-bottom: 4px solid var(--border-gray);
-}
-
-#bv-brc-outbreaks-section .card.inactive {
-  background-color: var(--gray-bg);
 }
 
 #bv-brc-home .content-image img,
@@ -374,6 +369,19 @@
 #bv-brc-home .content,
 #bv-brc-outbreaks-section .outbreaks .content {
   padding: 20px;
+}
+
+#bv-brc-outbreaks-section .outbreaks .content .status-label {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  color: var(--main-text-light);
+  background-color: var(--green);
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: bold;
 }
 
 #bv-brc-home .content-links a {
