@@ -8,6 +8,29 @@ define([
   lang, domConstruct
 ) {
 
+  function extractAccessions(raw) {
+    if (!raw || typeof raw !== 'string') return [];
+
+    return raw
+      .split(/[;,]+/)  // split on ; or ,
+      .map(token => token.trim())
+      .map(entry => {
+        const match = entry.match(/^([^:]+):\s*([A-Z]{1,2}\d{5,6})$/i);
+        if (match) {
+          return {prefix: match[1].trim(), acc: match[2].trim()};
+        }
+
+        // fallback if no prefix
+        const accMatch = entry.match(/^([A-Z]{1,2}\d{5,6})$/i);
+        if (accMatch) {
+          return {prefix: null, acc: accMatch[1].trim()};
+        }
+
+        return null;
+      })
+      .filter(Boolean);
+  }
+
   return declare([_WidgetBase], {
     baseClass: 'CSVGridViewer',
     grid: null,
@@ -61,8 +84,29 @@ define([
               return value || '';
             }
           };
+        } else if (h === 'GenBank Accession') {
+          cols[h] = {
+            label: h,
+            field: h,
+            sortable: true,
+            formatter: function (value, row) {
+              const accList = extractAccessions(value);
+              const accToIdMap = row.genbank_genome_id_map || {}; // assume you attached this
+
+              const links = accList.map(({prefix, acc}) => {
+                const genomeId = accToIdMap[acc];
+                const link = genomeId
+                  ? `<a href="https://www.bv-brc.org/view/Genome/${genomeId}" target="_blank">${acc}</a>`
+                  : acc;
+
+                return prefix ? `${prefix}: ${link}` : link;
+              });
+
+              return links.join('; ');
+            }
+          };
         } else {
-          cols[h] = { label: h, field: h, sortable: true };
+          cols[h] = {label: h, field: h, sortable: true};
         }
         return cols;
       }, {});

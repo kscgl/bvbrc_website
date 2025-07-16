@@ -31,6 +31,15 @@ define([
     return result;
   }
 
+  function extractAccessions(accessionStr) {
+    return accessionStr
+      .split(';')                            // Split by semicolon
+      .map(part => part.trim())             // Remove spaces
+      .map(part => part.split(':').pop())   // Drop RNA1:, Seg2:, etc.
+      .map(a => a.trim())
+      .filter(a => /^[A-Z]{1,2}\d{5,}/.test(a)); // Simple GenBank format check
+  }
+
   return declare([TabViewerBase], {
     perspectiveLabel: '',
     perspectiveIconClass: '',
@@ -184,6 +193,32 @@ define([
       this.viewer.addChild(this.webinars);
     },
 
+    _getGenomeIdsByAccessions: function (accessionList) {
+      const query = `in(genbank_accessions,(${accessionList.join(',')}))&select(genbank_accessions,genome_id)&limit(1000)`;
+
+      return xhr.post('https://www.bv-brc.org/api/genome', {
+        headers: {
+          'accept': 'application/json',
+          'content-type': 'application/rqlquery+x-www-form-urlencoded',
+          'X-Requested-With': null,
+          'Authorization': window.App?.authorizationToken || ''
+        },
+        data: query,
+        handleAs: 'json'
+      }).then(results => {
+        const accessionToGenomeId = {};
+        results.forEach(entry => {
+          if (entry.genbank_accessions && entry.genome_id) {
+            accessionToGenomeId[entry.genbank_accessions] = entry.genome_id;
+          }
+        });
+        return accessionToGenomeId;
+      }).catch(err => {
+        console.error('Failed to fetch genome IDs by accessions:', err.response?.text || err);
+        return {};
+      });
+    },
+
     _getTaxonIds: function (dataList, taxonRank) {
       const query = `in(taxon_name,(${dataList.join(',')}))&eq(taxon_rank,${taxonRank})&select(taxon_name,taxon_id)&limit(1000)`;
 
@@ -215,6 +250,7 @@ define([
       }).then((csvText) => {
         const genusSet = new Set();
         const familySet = new Set();
+        const accessionSet = new Set();
 
         const lines = csvText.trim().split('\n');
         if (lines.length === 0) return null;
@@ -237,25 +273,40 @@ define([
           }
 
           const genus = row['Genus']?.trim();
+          const accession = row['GenBank Accession']?.trim();
           if (genus) genusSet.add(genus);
+          if (accession) {
+            extractAccessions(accession).forEach(acc => accessionSet.add(acc));
+          }
           if (family) familySet.add(family);
 
           return row;
         });
 
         const genusList = Array.from(genusSet);
+        const accessionList = Array.from(accessionSet);
         const familyList = Array.from(familySet);
 
         return Promise.all([
           this._getTaxonIds(genusList, 'genus'),
-          this._getTaxonIds(familyList, 'family')
-        ]).then(([genusToTaxonId, familyToTaxonId]) => {
+          this._getTaxonIds(familyList, 'family'),
+          this._getGenomeIdsByAccessions(accessionList)
+        ]).then(([genusToTaxonId, familyToTaxonId, accessionToGenomeIdList]) => {
           data.forEach(row => {
             const genus = row['Genus']?.trim();
             row.taxon_genus_id = genusToTaxonId[genus] || null;
 
             const family = row['Family']?.trim();
             row.taxon_family_id = familyToTaxonId[family] || null;
+
+            const accession = row['GenBank Accession']?.trim();
+            const accMap = {};
+            extractAccessions(accession).forEach(acc => {
+              if (accessionToGenomeIdList[acc]) {
+                accMap[acc] = accessionToGenomeIdList[acc];
+              }
+            });
+            row.genbank_genome_id_map = accMap;
           });
 
           return {data, headers, familyPriorityMap};
