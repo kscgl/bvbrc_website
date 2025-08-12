@@ -38,6 +38,15 @@
   font-family: 'Roboto', sans-serif;
 }
 
+.menu-link-inner {
+  display: inline-flex;
+  align-items: center;
+}
+
+.menu-link-inner:hover {
+  text-decoration: underline;
+}
+
 #bv-brc-header {
   background: var(--blue);
 }

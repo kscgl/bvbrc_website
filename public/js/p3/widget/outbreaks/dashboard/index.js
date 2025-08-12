@@ -43,7 +43,7 @@ define([
   return declare([TabViewerBase], {
     perspectiveLabel: '',
     perspectiveIconClass: '',
-    title: '<h1 class="appHeader" style="color: #2a6d9e; margin-top: 10px; font-weight: bold;">Outbreak Response</h1>',
+    title: '<h1 class="appHeader" style="color: #2a6d9e; margin-top: 10px; font-weight: bold;">Outbreak Response Dashboard</h1>',
     priorityPathogenListURL: 'https://www.bv-brc.org/api/content/data/human_viral_pathogens.csv',
     highPriorityColor: '#ffcccc',
     moderatePriorityColor: '#fff2cc',
