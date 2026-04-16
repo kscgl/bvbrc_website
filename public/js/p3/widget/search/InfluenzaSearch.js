@@ -736,6 +736,61 @@ define([
       }
     },
 
+    buildDefaultColumns: function () {
+      var cols = [];
+
+      // Node → column name mappings: add the column when the user filled in a value
+      var nodeCols = [
+        [this.haSubtypeNode,        'h_subtype'],
+        [this.naSubtypeNode,        'n_subtype'],
+        [this.fullSubtypeNode,      'subtype'],
+        [this.fluBSubtypeNode,      'subtype'],
+        [this.h1CladeGlobalNode,    'h1_clade_global'],
+        [this.h1CladeUsNode,        'h1_clade_us'],
+        [this.h3CladeNode,          'h3_clade'],
+        [this.h5CladeNode,          'h5_clade'],
+        [this.subcladeNode,         'subclade'],
+        [this.hostGroupNode,        'host_group'],
+        [this.hostNameNode,         'host_common_name'],
+        [this.geographicGroupNode,  'geographic_group'],
+        [this.isolationCountryNode, 'isolation_country'],
+        [this.stateProvinceNode,    'state_province'],
+        [this.seasonNode,           'season'],
+        [this.isolationSourceNode,  'isolation_source'],
+        [this.passageNode,          'passage'],
+        [this.vaccineStrainNode,    'vaccine_strain'],
+        [this.referenceNode,        'reference'],
+        [this.geneNode,             'gene'],
+        [this.productNode,          'product']
+      ];
+
+      nodeCols.forEach(function (pair) {
+        var node = pair[0], col = pair[1];
+        if (node && node.get('value') && cols.indexOf(col) === -1) {
+          cols.push(col);
+        }
+      });
+
+      // Segment checkboxes — add 'segment' column if any are checked
+      var segChecked = [
+        this.segPB2Node, this.segPB1Node, this.segPANode, this.segHANode,
+        this.segNPNode, this.segNANode, this.segMNode, this.segNSNode
+      ].some(function (n) { return n && n.get('value'); });
+      if (segChecked) cols.push('segment');
+
+      // Collection date — add if either bound is filled
+      var collDateSet = (this.collectionDateFromNode && this.collectionDateFromNode.get('value')) ||
+                        (this.collectionDateToNode && this.collectionDateToNode.get('value'));
+      if (collDateSet) cols.push('collection_date');
+
+      // Submission date — add if either bound is filled
+      var subDateSet = (this.submissionDateFromNode && this.submissionDateFromNode.get('value')) ||
+                       (this.submissionDateToNode && this.submissionDateToNode.get('value'));
+      if (subDateSet) cols.push('completion_date');
+
+      return cols.length ? cols.join(',') : null;
+    },
+
     _buildGenomeQuery: function () {
       var genomeFilters = this._buildGenomeFilters();
 
