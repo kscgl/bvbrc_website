@@ -748,21 +748,21 @@ define([
         genomeFilters.push('eq(genome_status,Complete)');
       }
 
-      // Required segments — OR when multiple
+      // Required segments — use in(...) for multi-select, eq(...) for single
       var segmentNodes = {
         PB2: this.segPB2Node, PB1: this.segPB1Node, PA: this.segPANode, HA: this.segHANode,
         NP: this.segNPNode, NA: this.segNANode, M: this.segMNode, NS: this.segNSNode
       };
-      var segParts = [];
+      var segNums = [];
       for(var seg in segmentNodes) {
         if (segmentNodes[seg].get('value')) {
-          segParts.push('eq(segment,' + SEGMENT_NUMBERS[seg] + ')');
+          segNums.push(SEGMENT_NUMBERS[seg]);
         }
       }
-      if (segParts.length === 1) {
-        genomeFilters.push(segParts[0]);
-      } else if (segParts.length > 1) {
-        genomeFilters.push('or(' + segParts.join(',') + ')');
+      if (segNums.length === 1) {
+        genomeFilters.push('eq(segment,' + segNums[0] + ')');
+      } else if (segNums.length > 1) {
+        genomeFilters.push('in(segment,(' + segNums.join(',') + '))');
       }
 
       return 'eq(genome_id,*)&genome(' + genomeFilters.join(',') + ')';
