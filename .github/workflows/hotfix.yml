@@ -24,11 +24,29 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Bump patch version and create hotfix branch
+      - name: Get version from alpha and bump patch
         id: bump
         run: |
-          npm version patch --no-git-tag-version
-          VERSION=$(node -p "require('./package.json').version")
+          # Fetch alpha branch to get the current version (alpha is the source of truth)
+          git fetch origin alpha
+
+          # Get the version from alpha's package.json
+          ALPHA_VERSION=$(git show origin/alpha:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8')).version")
+          echo "Alpha version: $ALPHA_VERSION"
+
+          # Parse version components
+          MAJOR=$(echo $ALPHA_VERSION | cut -d. -f1)
+          MINOR=$(echo $ALPHA_VERSION | cut -d. -f2)
+          PATCH=$(echo $ALPHA_VERSION | cut -d. -f3)
+
+          # Bump patch version
+          NEW_PATCH=$((PATCH + 1))
+          VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+          echo "New hotfix version: $VERSION"
+
+          # Update package.json with the new version
+          npm version $VERSION --no-git-tag-version --allow-same-version
+
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           git checkout -b hotfix/v${VERSION}
           git add package.json package-lock.json
