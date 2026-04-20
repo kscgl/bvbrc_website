@@ -1278,18 +1278,14 @@ define([
       this.searchBox.set('placeHolder', this.placeHolder);
       this.searchBox.labelFunc = this.labelFunc;
 
-      // Re-validate when the searchBox dropdown closes or loses focus
-      // This ensures error state is restored after user interaction
+      // Re-validate when the searchBox dropdown closes
+      // This ensures error state is restored after user interaction with the dropdown
       var self = this;
       if (this.searchBox.dropDown) {
         on(this.searchBox.dropDown, 'hide', function() {
           setTimeout(function() { self.validate(); }, 0);
         });
       }
-      // Handle blur event on the searchBox
-      on(this.searchBox, 'blur', function() {
-        setTimeout(function() { self.validate(); }, 0);
-      });
       // Handle when dropdown closes (closeDropDown is called)
       var originalCloseDropDown = this.searchBox.closeDropDown;
       if (originalCloseDropDown) {
@@ -1365,21 +1361,33 @@ define([
     },
 
     validate: function (/* Boolean */ isFocused) {
-      // possibly need to build out refresh function to prevent tricky submissions(see validationtextbox)
-      var isValid = this.disabled || this.searchBox.isValid(isFocused);
+      // First check: if disabled, always valid
+      if (this.disabled) {
+        return true;
+      }
 
-      // If not required and value is empty, consider it valid
-      // This handles cases where the widget is optional (like fasta selector in Similar Genome Finder)
-      if (!this.required && !this.disabled) {
+      // Second check: if not required and value is empty, it's valid
+      // This must be checked BEFORE calling searchBox.isValid() to avoid
+      // the form focusing on empty optional fields
+      if (!this.required) {
         var currentValue = this.get('value') || '';
         if (!currentValue || currentValue === '' || currentValue === '/' || currentValue === '__loading__') {
-          // Empty optional field is valid
-          isValid = true;
+          // Empty optional field is valid - no need for visual error state
+          this._set('state', '');
+          this.focusNode.setAttribute('aria-invalid', 'false');
+          if (this.searchBox && this.searchBox.domNode) {
+            domClass.remove(this.searchBox.domNode, 'dijitError');
+            domClass.remove(this.searchBox.domNode, 'dijitTextBoxError');
+          }
+          return true;
         }
       }
 
+      // Now check the searchBox's validity
+      var isValid = this.searchBox.isValid(isFocused);
+
       // Additional check: if required, ensure value is not empty and is a valid path
-      if (isValid && this.required && !this.disabled) {
+      if (isValid && this.required) {
         var currentValue = this.get('value') || '';
         // Check for empty value or invalid paths
         // A valid workspace path should have at least 4 parts: ['', 'user', 'workspace', 'folder']
@@ -1405,34 +1413,21 @@ define([
       // Force the searchBox's visual validation state to match our validation result
       // This ensures the red border appears when validation fails, even if the
       // searchBox's own validation would pass (e.g., empty but not focused yet)
-      if (this.searchBox) {
+      // Note: We only manipulate CSS classes, not dijit's internal state, to avoid
+      // triggering focus-related side effects during validation
+      if (this.searchBox && this.searchBox.domNode) {
         if (!isValid) {
-          // Force error state on searchBox
-          this.searchBox._set('state', 'Error');
-          // Set _hasBeenBlurred so dijit will show the error styling
-          // Without this, dijit won't show error state on fields that haven't been touched
-          this.searchBox._hasBeenBlurred = true;
           // Add error classes to show visual feedback
           // The claro theme uses dijitTextBoxError for the red border
-          if (this.searchBox.domNode) {
-            domClass.add(this.searchBox.domNode, 'dijitError');
-            domClass.add(this.searchBox.domNode, 'dijitTextBoxError');
-          }
+          domClass.add(this.searchBox.domNode, 'dijitError');
+          domClass.add(this.searchBox.domNode, 'dijitTextBoxError');
         } else {
-          // Clear error state on searchBox
-          this.searchBox._set('state', '');
-          if (this.searchBox.domNode) {
-            domClass.remove(this.searchBox.domNode, 'dijitError');
-            domClass.remove(this.searchBox.domNode, 'dijitTextBoxError');
-          }
+          // Clear error classes
+          domClass.remove(this.searchBox.domNode, 'dijitError');
+          domClass.remove(this.searchBox.domNode, 'dijitTextBoxError');
         }
       }
 
-      if (isValid) {
-        registry.byClass('p3.widget.WorkspaceFilenameValidationTextBox').forEach(function (obj) {
-          obj.validate();
-        });
-      }
       return isValid;
     },
 
@@ -1440,6 +1435,21 @@ define([
       // This method is called by dijit/form/Form.validate() to check if this widget is valid
       // It delegates to our validate() method which handles the actual validation logic
       return this.validate(isFocused);
+    },
+
+    // Override focus to prevent Form.validate() from stealing focus when it finds
+    // an invalid widget. The Form calls focus() on the first invalid widget,
+    // which disrupts user input in other fields.
+    focus: function () {
+      // Only focus if this widget is the active element or user explicitly clicked
+      // Don't auto-focus during form validation
+      if (this._userInitiatedFocus) {
+        this._userInitiatedFocus = false;
+        if (this.searchBox && this.searchBox.focus) {
+          this.searchBox.focus();
+        }
+      }
+      // Otherwise, do nothing - prevent form validation from stealing focus
     },
 
     sanitizeSelection: function (path) {
