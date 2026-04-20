@@ -1368,6 +1368,16 @@ define([
       // possibly need to build out refresh function to prevent tricky submissions(see validationtextbox)
       var isValid = this.disabled || this.searchBox.isValid(isFocused);
 
+      // If not required and value is empty, consider it valid
+      // This handles cases where the widget is optional (like fasta selector in Similar Genome Finder)
+      if (!this.required && !this.disabled) {
+        var currentValue = this.get('value') || '';
+        if (!currentValue || currentValue === '' || currentValue === '/' || currentValue === '__loading__') {
+          // Empty optional field is valid
+          isValid = true;
+        }
+      }
+
       // Additional check: if required, ensure value is not empty and is a valid path
       if (isValid && this.required && !this.disabled) {
         var currentValue = this.get('value') || '';
