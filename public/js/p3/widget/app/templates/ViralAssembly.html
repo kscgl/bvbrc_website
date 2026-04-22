@@ -118,6 +118,12 @@
                             <label class="paramlabel" style="margin-right:8px;">Upload FASTA File</label>
                         </div>
                     </div>
+                    <div class="appRow" style="margin-top:4px;">
+                        <div data-dojo-type="dijit/form/Button"
+                             data-dojo-attach-point="findSimilarReferenceBtn"
+                             data-dojo-attach-event="onClick:onFindSimilarReference">Find Similar Reference</div>
+                        <div style="color:#666;font-size:0.85em;margin-top:4px;">Uses Mash/MinHash on your selected reads or FASTA file to suggest a GenBank accession.</div>
+                    </div>
                     <div class="appRow" data-dojo-attach-point="reference_genbank_row">
                         <div data-dojo-type="dijit/form/ValidationTextBox"
                              name="reference_genbank_accession"
@@ -176,6 +182,75 @@
                 <div data-dojo-attach-point="submitButton" type="submit" data-dojo-type="dijit/form/Button">Assemble
                 </div>
             </div>
+        </div>
+    </div>
+    <div data-dojo-type="dijit/Dialog"
+         data-dojo-attach-point="similarReferenceDialog"
+         data-dojo-props="title:'Find Similar Reference Genome', closable:true"
+         style="width:700px;">
+        <div style="padding:8px 0 12px 0;border-bottom:1px solid #ddd;margin-bottom:10px;">
+            <table style="width:100%;border-collapse:collapse;">
+                <tr>
+                    <td style="padding:0 12px 0 0;white-space:nowrap;">
+                        <label class="paramlabel">Max P-value</label><br>
+                        <select data-dojo-type="dijit/form/Select"
+                                data-dojo-attach-point="similarRef_pvalue"
+                                style="width:110px;">
+                            <option value="0.01">0.01</option>
+                            <option value="0.05">0.05</option>
+                            <option value="0.1">0.1</option>
+                            <option value="0.5">0.5</option>
+                            <option value="1" selected="selected">1.0</option>
+                        </select>
+                    </td>
+                    <td style="padding:0 12px 0 0;white-space:nowrap;">
+                        <label class="paramlabel">Max Distance</label><br>
+                        <select data-dojo-type="dijit/form/Select"
+                                data-dojo-attach-point="similarRef_distance"
+                                style="width:110px;">
+                            <option value="0.01">0.01</option>
+                            <option value="0.05">0.05</option>
+                            <option value="0.1">0.1</option>
+                            <option value="0.5">0.5</option>
+                            <option value="1" selected="selected">1.0</option>
+                        </select>
+                    </td>
+                    <td style="padding:0 12px 0 0;white-space:nowrap;">
+                        <label class="paramlabel">Max Hits</label><br>
+                        <select data-dojo-type="dijit/form/Select"
+                                data-dojo-attach-point="similarRef_maxHits"
+                                style="width:90px;">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50" selected="selected">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </td>
+                    <td style="padding:0 12px 0 0;white-space:nowrap;vertical-align:bottom;">
+                        <label class="paramlabel">Scope</label><br>
+                        <div style="margin-top:5px;">
+                            <input type="radio" data-dojo-type="dijit/form/RadioButton"
+                                   data-dojo-attach-point="similarRef_scopeRef"
+                                   name="similarRef_scope" value="ref" checked="checked"/>
+                            <label class="paramlabel" style="margin-right:8px;">Ref/Rep</label>
+                            <input type="radio" data-dojo-type="dijit/form/RadioButton"
+                                   data-dojo-attach-point="similarRef_scopeAll"
+                                   name="similarRef_scope" value="all"/>
+                            <label class="paramlabel">All public</label>
+                        </div>
+                    </td>
+                    <td style="vertical-align:bottom;padding-bottom:2px;">
+                        <div data-dojo-type="dijit/form/Button"
+                             data-dojo-attach-event="onClick:runSimilarReferenceSearch">Search</div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div data-dojo-attach-point="similarReferenceStatus" style="padding:6px 0;color:#444;font-size:0.9em;min-height:22px;"></div>
+        <div data-dojo-attach-point="similarReferenceResults" style="max-height:380px;overflow-y:auto;"></div>
+        <div style="padding:10px 0 0 0;text-align:right;border-top:1px solid #eee;margin-top:8px;">
+            <div data-dojo-type="dijit/form/Button"
+                 data-dojo-attach-event="onClick:closeSimilarReferenceDialog">Close</div>
         </div>
     </div>
 </form>
