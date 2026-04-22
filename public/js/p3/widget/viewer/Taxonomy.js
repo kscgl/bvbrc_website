@@ -289,6 +289,9 @@ define([
         case 'phylogeny':
           activeTab.set('state', lang.mixin({}, this.state));
           break;
+        case 'priorityPathogen':
+          activeTab.set('state', lang.mixin({}, this.state));
+          break;
         case 'sfvt':
           // Temporary remap: Influenza A virus taxon fix
           const taxon_id =
