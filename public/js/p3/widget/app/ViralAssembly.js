@@ -34,11 +34,12 @@ define([
         return;
       }
       this.inherited(arguments);
-      var _self = this;
+      const _self = this;
       _self.defaultPath = WorkspaceManager.getDefaultFolder() || _self.activeWorkspacePath;
       if (_self.output_path) {
         _self.output_path.set('value', _self.defaultPath);
       }
+      this.onStrategyChange();
       this._started = true;
       this.form_flag = false;
       try {
@@ -46,6 +47,46 @@ define([
       } catch (error) {
         console.error(error);
       }
+    },
+
+    getReferenceMode: function () {
+      if (this.reference_mode_fasta && this.reference_mode_fasta.get('checked')) {
+        return 'fasta';
+      }
+      return 'genbank';
+    },
+
+    onReferenceModeChange: function () {
+      const mode = this.getReferenceMode();
+      if (this.reference_genbank_row) {
+        this.reference_genbank_row.style.display = (mode == 'genbank') ? 'block' : 'none';
+      }
+      if (this.reference_fasta_row) {
+        this.reference_fasta_row.style.display = (mode == 'fasta') ? 'block' : 'none';
+      }
+      this.checkParameterRequiredFields();
+    },
+
+    onReferenceFieldChange: function () {
+      this.checkParameterRequiredFields();
+    },
+
+    validateGenbankAccession: function (accession) {
+      if (!accession) return false;
+      const value = String(accession).trim().toUpperCase();
+      if (!value) return false;
+      const accessionPattern = /^[A-Z]{1,4}_?[A-Z]{0,4}\d+(?:\.\d+)?$/;
+      const accessionList = value.split(';');
+      return accessionList.every(function (item) {
+        const token = item.trim();
+        return token && accessionPattern.test(token);
+      });
+    },
+
+    validateReferenceFastaPath: function (pathValue) {
+      if (!pathValue) return false;
+      const value = String(pathValue).trim().toLowerCase();
+      return /\.(fa|fna|fasta)$/.test(value);
     },
 
     inputTypeChanged: function () {
@@ -65,7 +106,7 @@ define([
     },
 
     openJobsList: function () {
-      Topic.publish('/navigate', {href: '/job/'});
+      Topic.publish('/navigate', { href: '/job/' });
     },
 
     getValues: function () {
@@ -73,10 +114,22 @@ define([
 
       let assemblyValues = {
         strategy: values.strategy,
-        module: values.module,
         output_path: values.output_path,
         output_file: values.output_file
       };
+
+      if (values.strategy === 'irma') {
+        assemblyValues.module = values.module;
+      } else if (values.strategy === 'reference-guided') {
+        const mode = this.getReferenceMode();
+        assemblyValues.strategy = 'reference_guided';
+        assemblyValues.reference_type = mode;
+        if (mode === 'genbank') {
+          assemblyValues.reference_genbank_accession = values.reference_genbank_accession;
+        } else if (mode === 'fasta') {
+          assemblyValues.reference_fasta_file = values.reference_fasta_file;
+        }
+      }
 
       if (values.inputType === 'pairedRead') {
         assemblyValues.paired_end_lib = {
@@ -91,7 +144,7 @@ define([
         if (this.isSRAValid) {
           // Validate SRR accession id
           //this.onAddSRR();
-          assemblyValues.srr_id = values.srr_accession;
+          assemblyValues.sra_id = values.srr_accession;
         } else {
           return false;
         }
@@ -107,7 +160,42 @@ define([
     },
 
     checkParameterRequiredFields: function () {
-      if (this.output_path.get('value') && this.output_file.get('displayedValue')) {
+      const hasOutputPath = this.output_path.get('value');
+      const hasOutputName = this.output_file.get('displayedValue');
+      const strategy = this.strategy && this.strategy.get('value');
+      let hasReference = true;
+
+      if (strategy === 'reference-guided') {
+        if (this.reference_section) {
+          this.reference_section.style.display = 'block';
+        }
+        if (this.irma_module_row) {
+          this.irma_module_row.style.display = 'none';
+        }
+        const mode = this.getReferenceMode();
+        if (mode === 'genbank') {
+          const accession = this.reference_genbank_accession && this.reference_genbank_accession.get('value');
+          hasReference = this.validateGenbankAccession(accession);
+          if (this.reference_genbank_accession) {
+            this.reference_genbank_accession.set('state', hasReference || !accession ? '' : 'Error');
+          }
+        } else if (mode === 'fasta') {
+          const fastaPath = this.reference_fasta_file && this.reference_fasta_file.searchBox && this.reference_fasta_file.searchBox.get('value');
+          hasReference = this.validateReferenceFastaPath(fastaPath);
+          if (this.reference_fasta_file && this.reference_fasta_file.searchBox && typeof this.reference_fasta_file.searchBox.set === 'function') {
+            this.reference_fasta_file.searchBox.set('state', hasReference || !fastaPath ? '' : 'Error');
+          }
+        }
+      } else {
+        if (this.reference_section) {
+          this.reference_section.style.display = 'none';
+        }
+        if (this.irma_module_row) {
+          this.irma_module_row.style.display = 'block';
+        }
+      }
+
+      if (hasOutputPath && hasOutputName && hasReference) {
         this.validate();
       } else {
         if (this.submitButton) {
@@ -127,11 +215,10 @@ define([
     },
 
     onStrategyChange: function () {
-      if (this.strategy.value == 'canu') {
-        this.checkParameterRequiredFields();
-      } else {
-        this.checkParameterRequiredFields();
+      if (this.strategy.get('value') === 'reference-guided') {
+        this.onReferenceModeChange();
       }
+      this.checkParameterRequiredFields();
     },
 
     onSRRChange: function () {
@@ -148,7 +235,7 @@ define([
           xhr.get(lang.replace(this.srrValidationUrl, [accession]),
             {
               sync: false,
-              headers: {'X-Requested-With': null},
+              headers: { 'X-Requested-With': null },
               timeout: 15000,
               handleAs: 'text'
             }).then(
@@ -173,30 +260,44 @@ define([
     },
 
     setStrategy: function (strategy) {
-      console.log('strategy = ', strategy);
       this.strategy.set('value', strategy);
     },
 
     intakeRerunForm: function () {
       // assuming only one key
-      var service_fields = window.location.search.replace('?', '');
-      var rerun_fields = service_fields.split('=');
-      var rerun_key;
+      const service_fields = window.location.search.replace('?', '');
+      const rerun_fields = service_fields.split('=');
+      let rerun_key;
       if (rerun_fields.length > 1) {
         rerun_key = rerun_fields[1];
-        var sessionStorage = window.sessionStorage;
+        const sessionStorage = window.sessionStorage;
         if (sessionStorage.hasOwnProperty(rerun_key)) {
           try {
             const jobData = JSON.parse(sessionStorage.getItem(rerun_key));
 
-            if (jobData['module']){
+            if (jobData['strategy']) {
+              const strategyValue = jobData['strategy'] === 'reference_guided' ? 'reference-guided' : jobData['strategy'];
+              this.strategy.set('value', strategyValue);
+            }
+            if (jobData['module']) {
               this.module.set('value', jobData['module']);
             }
-            if (jobData['output_path']){
+            if (jobData['output_path']) {
               this.output_path.set('value', jobData['output_path']);
             }
-            if (jobData['srr_id']){
-              this.srr_accession.set('value', jobData['srr_id']);
+            if (jobData['reference_type'] === 'fasta' && this.reference_mode_fasta) {
+              this.reference_mode_fasta.set('checked', true);
+            } else if (jobData['reference_type'] === 'genbank' && this.reference_mode_genbank) {
+              this.reference_mode_genbank.set('checked', true);
+            }
+            if (jobData['reference_genbank_accession'] && this.reference_genbank_accession) {
+              this.reference_genbank_accession.set('value', jobData['reference_genbank_accession']);
+            }
+            if (jobData['reference_fasta_file'] && this.reference_fasta_file) {
+              this.reference_fasta_file.set('value', jobData['reference_fasta_file']);
+            }
+            if (jobData['srr_id'] || jobData['sra_id']) {
+              this.srr_accession.set('value', jobData['srr_id'] || jobData['sra_id']);
               this.sraAccessionCheck.set('checked', true);
               this.onSRRChange();
             } else if (jobData['paired_end_lib']) {
