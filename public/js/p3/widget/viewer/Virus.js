@@ -15,7 +15,12 @@ define([
         id: this.viewer.id + '_priorityPathogen',
         state: this.state
       });
-      this.viewer.addChild(this.priorityPathogen, 1);
+    },
+
+    onSetTaxonomy: function (attr, oldVal, taxonomy) {
+      this.inherited(arguments);
+      const onVirusPage = this.state && this.state.pathname && /^\/Virus\//.test(this.state.pathname);
+      this._toggleTab(this.priorityPathogen, onVirusPage, 1);
     },
     createOverviewPanel: function () {
       return new VirusOverview({
