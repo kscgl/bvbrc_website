@@ -15,55 +15,58 @@
             <p>${applicationDescription} For further explanation, please see the ${applicationLabel} Service <a
                     href="${docsServiceURL}${tutorialLink}" target="_blank">Tutorial</a>.</p>
         </div>
-        <div class="formFieldsContainer" style="max-width: 450px; margin: auto">
-            <div id="startWithBox" class="appBox appShadow">
+        <div class="formFieldsContainer" style="max-width: 500px; margin: auto">
+            <div id="${id}_startWithBox" class="appBox appShadow">
                 <div class="headerrow">
                     <label class="appBoxLabel">Input File</label>
                 </div>
                 <div class="appRow">
-                    <input type="radio" id="pairedRead" name="inputType" value="pairedRead" checked
+                    <input type="radio" id="${id}_pairedRead" name="inputType" value="pairedRead" checked
                            data-dojo-type="dijit/form/RadioButton"
                            data-dojo-attach-point="pairedReadCheck"/>
-                    <label for="pairedRead">Paired Read Library</label>
-                    <input type="radio" id="singleRead" name="inputType" value="singleRead"
+                    <label for="${id}_pairedRead">Paired Read Library</label>
+                    <input type="radio" id="${id}_singleRead" name="inputType" value="singleRead"
                            data-dojo-type="dijit/form/RadioButton"
                            data-dojo-attach-point="singleReadCheck"
                            data-dojo-attach-event="onChange:inputTypeChanged"/>
-                    <label for="singleRead">Single Read Library</label>
-                    <input type="radio" id="sraAccession" name="inputType" value="sraAccession"
+                    <label for="${id}_singleRead">Single Read Library</label>
+                    <input type="radio" id="${id}_sraAccession" name="inputType" value="sraAccession"
                            data-dojo-type="dijit/form/RadioButton"
                            data-dojo-attach-point="sraAccessionCheck"
                            data-dojo-attach-event="onChange:inputTypeChanged"/>
-                    <label for="sraAccession">Sra Run Accession</label>
+                    <label for="${id}_sraAccession">SRA Run Accession</label>
                 </div>
 
-                <div id="pairedReadLibraryBox">
+                <div id="${id}_pairedReadLibraryBox">
                     <div class="appRow">
                         <div data-dojo-type="p3/widget/WorkspaceObjectSelector" name="read1"
                              data-dojo-attach-point="read1" required="false"
+                             data-dojo-attach-event="onChange:onReadFileChange"
                              data-dojo-props="type:['reads'],multi:false,placeHolder:'READ FILE 1'"></div>
                     </div>
                     <div class="appRow">
                         <div data-dojo-attach-point="read2block">
                             <div data-dojo-type="p3/widget/WorkspaceObjectSelector" name="read2"
                                  data-dojo-attach-point="read2" required="false"
+                                 data-dojo-attach-event="onChange:onReadFileChange"
                                  data-dojo-props="type:['reads'],multi:false,placeHolder:'READ FILE 2'"></div>
                         </div>
                     </div>
                 </div>
 
-                <div id="singleReadLibraryBox" style="display:none;">
+                <div id="${id}_singleReadLibraryBox" style="display:none;">
                     <div class="appRow">
                         <div data-dojo-type="p3/widget/WorkspaceObjectSelector" name="read"
                              data-dojo-attach-point="read" required="false"
+                             data-dojo-attach-event="onChange:onReadFileChange"
                              data-dojo-props="type:['reads'],multi:false,placeHolder:'READ FILE'"></div>
                     </div>
                 </div>
 
-                <div id="sraAccessionBox" style="display:none;">
+                <div id="${id}_sraAccessionBox" style="display:none;">
                     <div class="appRow">
                         <div data-dojo-type="dijit/form/ValidationTextBox" data-dojo-attach-point="srr_accession"
-                             style="width:400px" required="false" data-dojo-attach-event="onBlur:onSRRChange" name="srr_accession"
+                             style="width:95%" required="false" data-dojo-attach-event="onBlur:onSRRChange" name="srr_accession"
                              data-dojo-props="intermediateChanges:true, missingMessage:'You must provide an accession', trim:true, placeHolder:'SRA Accession'"></div>
                         <div data-dojo-attach-point="srr_accession_validation_message"></div>
                     </div>
@@ -79,7 +82,7 @@
                 <div class="appRow">
                     <label class="paramlabel">Assembly Strategy</label><br>
                     <select data-dojo-type="dijit/form/Select" name="strategy" data-dojo-attach-point="strategy"
-                            style="width:400px" required="true" data-dojo-attach-event="onChange:onStrategyChange">
+                            style="width:95%" required="true" data-dojo-attach-event="onChange:onStrategyChange">
                         <!--?<option value="auto">Auto</option>-->
                         <option value="irma">IRMA</option>
                         <option value="reference-guided">Reference Guided Assembly</option>
@@ -88,7 +91,7 @@
                 <div class="appRow" data-dojo-attach-point="irma_module_row">
                     <label class="paramlabel">Reference Database</label><br>
                     <select data-dojo-type="dijit/form/Select" name="module" data-dojo-attach-point="module"
-                            style="width:400px" required="true">
+                            style="width:95%" required="true">
                         <option value="FLU">FLU</option>
                         <option value="FLU_AD">FLU AD</option>
                         <option value="FLU-alt">FLU Alt</option>
@@ -112,34 +115,48 @@
                     <div class="appRow">
                         <label class="paramlabel">Reference</label><br>
                         <div style="margin-top:5px;">
-                            <input type="radio" data-dojo-type="dijit/form/RadioButton" data-dojo-attach-point="reference_mode_genbank" name="reference_mode" value="genbank" checked="checked" data-dojo-attach-event="onChange:onReferenceModeChange" />
-                            <label class="paramlabel" style="margin-right:8px;">Genbank Accession</label>
+                            <input type="radio" data-dojo-type="dijit/form/RadioButton" data-dojo-attach-point="reference_mode_genome" name="reference_mode" value="genome" checked="checked" data-dojo-attach-event="onChange:onReferenceModeChange" />
+                            <label class="paramlabel" style="margin-right:12px;">Select Genome</label>
+                            <input type="radio" data-dojo-type="dijit/form/RadioButton" data-dojo-attach-point="reference_mode_auto" name="reference_mode" value="auto" data-dojo-attach-event="onChange:onReferenceModeChange" />
+                            <label class="paramlabel" style="margin-right:12px;">Auto (Minhash)</label>
+                            <input type="radio" data-dojo-type="dijit/form/RadioButton" data-dojo-attach-point="reference_mode_genbank" name="reference_mode" value="genbank" data-dojo-attach-event="onChange:onReferenceModeChange" />
+                            <label class="paramlabel" style="margin-right:12px;">GenBank Accession</label>
                             <input type="radio" data-dojo-type="dijit/form/RadioButton" data-dojo-attach-point="reference_mode_fasta" name="reference_mode" value="fasta" data-dojo-attach-event="onChange:onReferenceModeChange" />
-                            <label class="paramlabel" style="margin-right:8px;">Upload FASTA File</label>
+                            <label class="paramlabel">Upload FASTA</label>
                         </div>
                     </div>
-                    <div class="appRow" style="margin-top:4px;">
-                        <div data-dojo-type="dijit/form/Button"
-                             data-dojo-attach-point="findSimilarReferenceBtn"
-                             data-dojo-attach-event="onClick:onFindSimilarReference">Find Similar Reference</div>
-                        <div style="color:#666;font-size:0.85em;margin-top:4px;">Uses Mash/MinHash on your selected reads or FASTA file to suggest a GenBank accession.</div>
+                    <div class="appRow" data-dojo-attach-point="reference_genome_row">
+                        <div data-dojo-attach-event="onChange:onSuggestNameChange"
+                             data-dojo-type="p3/widget/GenomeNameSelector"
+                             name="reference_genome_id"
+                             data-dojo-attach-point="reference_genome_nameWidget"
+                             style="width:95%"
+                             required="false"
+                             maxHeight="200"></div>
                     </div>
-                    <div class="appRow" data-dojo-attach-point="reference_genbank_row">
+                    <div class="appRow" data-dojo-attach-point="reference_auto_row" style="display:none;">
+                        <div data-dojo-attach-point="autoRefStatus" style="color:#666;font-size:0.9em;padding:4px 0;"></div>
+                        <div data-dojo-attach-point="autoRefResult" style="margin-top:6px;padding:8px;background:#f5f5f5;border:1px solid #ddd;border-radius:3px;display:none;">
+                            <div data-dojo-attach-point="autoRefResultName" style="font-weight:bold;font-size:0.95em;"></div>
+                            <div data-dojo-attach-point="autoRefResultDetails" style="color:#555;font-size:0.85em;margin-top:3px;"></div>
+                        </div>
+                    </div>
+                    <div class="appRow" data-dojo-attach-point="reference_genbank_row" style="display:none;">
                         <div data-dojo-type="dijit/form/ValidationTextBox"
                              name="reference_genbank_accession"
                              data-dojo-attach-point="reference_genbank_accession"
-                             style="width:400px"
+                             style="width:95%"
                              required="false"
-                             data-dojo-props="intermediateChanges:true, trim:true, placeHolder:'Genbank Accession'"
+                             data-dojo-props="intermediateChanges:true,trim:true,placeHolder:'GenBank Accession (e.g. NC_045512.2)'"
                              data-dojo-attach-event="onChange:onReferenceFieldChange"></div>
                     </div>
                     <div class="appRow" data-dojo-attach-point="reference_fasta_row" style="display:none;">
                         <div data-dojo-type="p3/widget/WorkspaceObjectSelector"
                              name="reference_fasta_file"
                              data-dojo-attach-point="reference_fasta_file"
-                             style="width:400px"
+                             style="width:95%"
                              required="false"
-                             data-dojo-props="type:['feature_dna_fasta', 'genome_dna_fasta', 'contigs'],multi:false,promptMessage:'Select or upload FASTA file to your workspace.',placeHolder:'FASTA file'"
+                             data-dojo-props="type:['feature_dna_fasta','genome_dna_fasta','contigs'],multi:false,promptMessage:'Select or upload a FASTA file.',placeHolder:'FASTA file'"
                              data-dojo-attach-event="onChange:onReferenceFieldChange"></div>
                     </div>
                 </div>
@@ -155,13 +172,13 @@
                                                                        style="color:red; font-size:8pt; padding-left:10px; font-weight:bold">&nbsp;</span><br>
                     <div data-dojo-type="p3/widget/WorkspaceFilenameValidationTextBox" name="output_file"
                          data-dojo-attach-event="onChange:checkOutputName" data-dojo-attach-point="output_file"
-                         style="width:400px" required="true"
+                         style="width:95%" required="true"
                          data-dojo-props="intermediateChanges:true,missingMessage:'Name must be provided for the job result',trim:true,placeHolder:'Output Name'"></div>
                 </div>
             </div>
         </div>
         <div class="appSubmissionArea">
-            <div style="width:400px; margin:auto" class="workingMessage messageContainer">
+            <div style="width:95%; margin:auto" class="workingMessage messageContainer">
                 Submitting Assembly Job
             </div>
             <div data-dojo-attach-point="submittedMessage" class="messageContainer submittedMessage"
@@ -170,7 +187,7 @@
                     data-dojo-attach-event="onclick:openJobsList"><u>Jobs List</u> </a>to check the status of your job
                 and access the results.
             </div>
-            <div style="width:400px; margin:auto" class="errorMessage messageContainer">
+            <div style="width:95%; margin:auto" class="errorMessage messageContainer">
                 <div style="font-weight:900;font-size:1.1em;">Error Submitting Assembly Job</div>
                 <p data-dojo-attach-point="errorMessage">Error</p>
             </div>
@@ -182,75 +199,6 @@
                 <div data-dojo-attach-point="submitButton" type="submit" data-dojo-type="dijit/form/Button">Assemble
                 </div>
             </div>
-        </div>
-    </div>
-    <div data-dojo-type="dijit/Dialog"
-         data-dojo-attach-point="similarReferenceDialog"
-         data-dojo-props="title:'Find Similar Reference Genome', closable:true"
-         style="width:700px;">
-        <div style="padding:8px 0 12px 0;border-bottom:1px solid #ddd;margin-bottom:10px;">
-            <table style="width:100%;border-collapse:collapse;">
-                <tr>
-                    <td style="padding:0 12px 0 0;white-space:nowrap;">
-                        <label class="paramlabel">Max P-value</label><br>
-                        <select data-dojo-type="dijit/form/Select"
-                                data-dojo-attach-point="similarRef_pvalue"
-                                style="width:110px;">
-                            <option value="0.01">0.01</option>
-                            <option value="0.05">0.05</option>
-                            <option value="0.1">0.1</option>
-                            <option value="0.5">0.5</option>
-                            <option value="1" selected="selected">1.0</option>
-                        </select>
-                    </td>
-                    <td style="padding:0 12px 0 0;white-space:nowrap;">
-                        <label class="paramlabel">Max Distance</label><br>
-                        <select data-dojo-type="dijit/form/Select"
-                                data-dojo-attach-point="similarRef_distance"
-                                style="width:110px;">
-                            <option value="0.01">0.01</option>
-                            <option value="0.05">0.05</option>
-                            <option value="0.1">0.1</option>
-                            <option value="0.5">0.5</option>
-                            <option value="1" selected="selected">1.0</option>
-                        </select>
-                    </td>
-                    <td style="padding:0 12px 0 0;white-space:nowrap;">
-                        <label class="paramlabel">Max Hits</label><br>
-                        <select data-dojo-type="dijit/form/Select"
-                                data-dojo-attach-point="similarRef_maxHits"
-                                style="width:90px;">
-                            <option value="10">10</option>
-                            <option value="25">25</option>
-                            <option value="50" selected="selected">50</option>
-                            <option value="100">100</option>
-                        </select>
-                    </td>
-                    <td style="padding:0 12px 0 0;white-space:nowrap;vertical-align:bottom;">
-                        <label class="paramlabel">Scope</label><br>
-                        <div style="margin-top:5px;">
-                            <input type="radio" data-dojo-type="dijit/form/RadioButton"
-                                   data-dojo-attach-point="similarRef_scopeRef"
-                                   name="similarRef_scope" value="ref" checked="checked"/>
-                            <label class="paramlabel" style="margin-right:8px;">Ref/Rep</label>
-                            <input type="radio" data-dojo-type="dijit/form/RadioButton"
-                                   data-dojo-attach-point="similarRef_scopeAll"
-                                   name="similarRef_scope" value="all"/>
-                            <label class="paramlabel">All public</label>
-                        </div>
-                    </td>
-                    <td style="vertical-align:bottom;padding-bottom:2px;">
-                        <div data-dojo-type="dijit/form/Button"
-                             data-dojo-attach-event="onClick:runSimilarReferenceSearch">Search</div>
-                    </td>
-                </tr>
-            </table>
-        </div>
-        <div data-dojo-attach-point="similarReferenceStatus" style="padding:6px 0;color:#444;font-size:0.9em;min-height:22px;"></div>
-        <div data-dojo-attach-point="similarReferenceResults" style="max-height:380px;overflow-y:auto;"></div>
-        <div style="padding:10px 0 0 0;text-align:right;border-top:1px solid #eee;margin-top:8px;">
-            <div data-dojo-type="dijit/form/Button"
-                 data-dojo-attach-event="onClick:closeSimilarReferenceDialog">Close</div>
         </div>
     </div>
 </form>

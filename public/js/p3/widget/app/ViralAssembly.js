@@ -21,16 +21,8 @@ define([
     defaultPath: '',
     srrValidationUrl: 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?retmax=1&db=sra&field=accn&term={0}&retmode=json',
     isSRAValid: false,
-
-    // Similar Genome Finder (Mash/MinHash) config. Tweak here to change scope/thresholds.
-    similarGenomeFinderConfig: {
-      scope: 'ref',           // 'ref' = reference/representative only, 'all' = all public genomes
-      includeBacterial: 0,
-      includeViral: 1,
-      maxPvalue: 1,
-      maxDistance: 1,
-      maxHits: 50
-    },
+    _autoReferenceGenomeId: null,
+    _autoReferenceCache: null,  // { path, genomeId, name, distance, pvalue, taxon }
 
     constructor: function () {
       this.paramToAttachPt = ['strategy', 'output_path', 'output_file', 'module'];
@@ -60,20 +52,27 @@ define([
     },
 
     getReferenceMode: function () {
-      if (this.reference_mode_fasta && this.reference_mode_fasta.get('checked')) {
-        return 'fasta';
-      }
-      return 'genbank';
+      if (this.reference_mode_auto && this.reference_mode_auto.get('checked')) return 'auto';
+      if (this.reference_mode_genbank && this.reference_mode_genbank.get('checked')) return 'genbank';
+      if (this.reference_mode_fasta && this.reference_mode_fasta.get('checked')) return 'fasta';
+      return 'genome';
     },
 
     onReferenceModeChange: function () {
       const mode = this.getReferenceMode();
-      if (this.reference_genbank_row) {
-        this.reference_genbank_row.style.display = (mode == 'genbank') ? 'block' : 'none';
+      if (this.reference_genome_row) this.reference_genome_row.style.display = (mode === 'genome') ? 'block' : 'none';
+      if (this.reference_auto_row) this.reference_auto_row.style.display = (mode === 'auto') ? 'block' : 'none';
+      if (this.reference_genbank_row) this.reference_genbank_row.style.display = (mode === 'genbank') ? 'block' : 'none';
+      if (this.reference_fasta_row) this.reference_fasta_row.style.display = (mode === 'fasta') ? 'block' : 'none';
+      if (mode === 'auto') {
+        this.runAutoReferenceSearch();
+      } else {
+        this._autoReferenceGenomeId = null;
       }
-      if (this.reference_fasta_row) {
-        this.reference_fasta_row.style.display = (mode == 'fasta') ? 'block' : 'none';
-      }
+      this.checkParameterRequiredFields();
+    },
+
+    onSuggestNameChange: function () {
       this.checkParameterRequiredFields();
     },
 
@@ -86,8 +85,7 @@ define([
       const value = String(accession).trim().toUpperCase();
       if (!value) return false;
       const accessionPattern = /^[A-Z]{1,4}_?[A-Z]{0,4}\d+(?:\.\d+)?$/;
-      const accessionList = value.split(';');
-      return accessionList.every(function (item) {
+      return value.split(';').every(function (item) {
         const token = item.trim();
         return token && accessionPattern.test(token);
       });
@@ -95,77 +93,76 @@ define([
 
     validateReferenceFastaPath: function (pathValue) {
       if (!pathValue) return false;
-      const value = String(pathValue).trim().toLowerCase();
-      return /\.(fa|fna|fasta)$/.test(value);
+      return /\.(fa|fna|fasta)$/i.test(String(pathValue).trim());
+    },
+
+    onReadFileChange: function () {
+      this._autoReferenceCache = null;
+      if (this.getReferenceMode() === 'auto') {
+        this.runAutoReferenceSearch();
+      }
     },
 
     getSimilarReferenceInputPath: function () {
-      // Priority: reads first (what the user is assembling), then reference FASTA if set.
       if (this.read1 && this.read1.get('value')) return this.read1.get('value');
       if (this.read && this.read.get('value')) return this.read.get('value');
-      if (this.reference_fasta_file && this.reference_fasta_file.get('value')) {
-        return this.reference_fasta_file.get('value');
-      }
       return null;
     },
 
-    onFindSimilarReference: function () {
-      if (!this.similarReferenceDialog) return;
-      this.similarReferenceDialog.show();
-      this.runSimilarReferenceSearch();
-    },
+    runAutoReferenceSearch: function () {
+      this._autoReferenceGenomeId = null;
+      if (this.autoRefResult) this.autoRefResult.style.display = 'none';
 
-    runSimilarReferenceSearch: function () {
       const path = this.getSimilarReferenceInputPath();
-      domConstruct.empty(this.similarReferenceResults);
-
       if (!path) {
-        this.similarReferenceStatus.innerHTML = 'Select a read library or reference FASTA file first.';
+        if (this.autoRefStatus) this.autoRefStatus.innerHTML = 'Select a read file above to auto-detect the reference genome.';
+        this.checkParameterRequiredFields();
         return;
       }
 
-      // Read params from dialog widgets, fall back to config defaults
-      const cfg = this.similarGenomeFinderConfig;
-      const pvalue = this.similarRef_pvalue ? parseFloat(this.similarRef_pvalue.get('value')) : cfg.maxPvalue;
-      const distance = this.similarRef_distance ? parseFloat(this.similarRef_distance.get('value')) : cfg.maxDistance;
-      const maxHits = this.similarRef_maxHits ? parseInt(this.similarRef_maxHits.get('value')) : cfg.maxHits;
-      const scopeIsRef = this.similarRef_scopeRef ? this.similarRef_scopeRef.get('checked') : (cfg.scope === 'ref');
-      const includeRef = scopeIsRef ? 1 : 0;
+      if (this._autoReferenceCache && this._autoReferenceCache.path === path) {
+        this.renderAutoReferenceResult(this._autoReferenceCache);
+        return;
+      }
 
-      this.similarReferenceStatus.innerHTML = 'Searching...';
+      if (this.autoRefStatus) this.autoRefStatus.innerHTML = 'Searching BV-BRC for a matching reference genome...';
 
       const rpc = {
         method: 'Minhash.compute_genome_distance_for_fasta2',
-        params: [path, pvalue, distance, maxHits, includeRef, includeRef, cfg.includeBacterial, cfg.includeViral],
+        params: [path, 1, 1, 1, 0, 0, 0, 1],
         version: '1.1',
         id: String(Math.random()).slice(2)
       };
 
       xhr.post(window.App.genomedistanceServiceURL, {
-        headers: {
-          Authorization: window.App.authorizationToken || '',
-          Accept: 'application/json'
-        },
+        headers: { Authorization: window.App.authorizationToken || '', Accept: 'application/json' },
         handleAs: 'json',
         data: JSON.stringify(rpc)
       }).then(lang.hitch(this, function (res) {
         if (res && res.error) {
-          this.similarReferenceStatus.innerHTML = 'Service error: ' + (res.error.message || JSON.stringify(res.error));
+          if (this.autoRefStatus) this.autoRefStatus.innerHTML = 'Search error: ' + (res.error.message || JSON.stringify(res.error));
+          this.checkParameterRequiredFields();
           return;
         }
         const hits = (res && res.result && res.result[0]) || [];
-        this.fetchSimilarReferenceMetadata(hits);
-      }), lang.hitch(this, function (err) {
-        this.similarReferenceStatus.innerHTML = 'Error: ' + ((err && err.message) || 'Request failed');
+        if (!hits.length) {
+          if (this.autoRefStatus) this.autoRefStatus.innerHTML = 'No matching reference genome found.';
+          this.checkParameterRequiredFields();
+          return;
+        }
+        this.displayAutoReferenceHit(hits[0]);
+      }), lang.hitch(this, function () {
+        if (this.autoRefStatus) this.autoRefStatus.innerHTML = 'Search failed. Please try again.';
+        this.checkParameterRequiredFields();
       }));
     },
 
-    fetchSimilarReferenceMetadata: function (hits) {
-      if (!hits || hits.length === 0) {
-        this.similarReferenceStatus.innerHTML = 'No similar genomes found. Try loosening the distance/p-value thresholds.';
-        return;
-      }
-      const genomeIds = hits.map(function (h) { return h[0]; });
+    displayAutoReferenceHit: function (hit) {
+      const path = this.getSimilarReferenceInputPath();
+      const genomeId = hit[0];
+      const distance = parseFloat(hit[1]);
+      const pvalue = parseFloat(hit[2]);
+
       xhr.post(window.App.dataAPI + 'genome/', {
         headers: {
           Authorization: window.App.authorizationToken || '',
@@ -174,88 +171,64 @@ define([
           'X-Requested-With': null
         },
         handleAs: 'json',
-        data: { rows: hits.length, q: 'genome_id:(' + genomeIds.join(' OR ') + ')' }
+        data: { rows: 1, q: 'genome_id:(' + genomeId + ')' }
       }).then(lang.hitch(this, function (res) {
-        const metaById = {};
-        (res || []).forEach(function (g) { metaById[g.genome_id] = g; });
-        const rows = hits.map(function (h) {
-          const meta = metaById[h[0]] || {};
-          const accession = ((meta.genbank_accessions || '').split(',')[0] || '').trim();
-          return {
-            genome_id: h[0],
-            distance: h[1],
-            pvalue: h[2],
-            name: meta.genome_name || h[0],
-            accession: accession
-          };
-        });
-        this.renderSimilarReferenceTable(rows);
+        const meta = (res && res[0]) || {};
+        const result = {
+          path: path,
+          genomeId: genomeId,
+          name: meta.genome_name || genomeId,
+          distance: distance,
+          pvalue: pvalue,
+          taxon: meta.taxon_lineage_names ? meta.taxon_lineage_names.join(' > ') : ''
+        };
+        this._autoReferenceCache = result;
+        this.renderAutoReferenceResult(result);
       }), lang.hitch(this, function () {
-        this.similarReferenceStatus.innerHTML = 'Error loading genome metadata from data API.';
+        const result = {
+          path: path,
+          genomeId: genomeId,
+          name: genomeId,
+          distance: distance,
+          pvalue: pvalue,
+          taxon: ''
+        };
+        this._autoReferenceCache = result;
+        this.renderAutoReferenceResult(result);
       }));
     },
 
-    renderSimilarReferenceTable: function (rows) {
-      const _self = this;
-      domConstruct.empty(this.similarReferenceResults);
-      this.similarReferenceStatus.innerHTML = 'Found ' + rows.length + ' similar genomes. Click Use to populate the reference.';
-
-      const table = domConstruct.create('table', { style: 'width:100%;border-collapse:collapse;font-size:0.9em;' }, this.similarReferenceResults);
-      const thead = domConstruct.create('thead', {}, table);
-      const headRow = domConstruct.create('tr', {}, thead);
-      ['Genome Name', 'GenBank', 'Distance', 'P-value', ''].forEach(function (h) {
-        domConstruct.create('th', { innerHTML: h, style: 'text-align:left;border-bottom:1px solid #ccc;padding:4px;' }, headRow);
-      });
-      const tbody = domConstruct.create('tbody', {}, table);
-      rows.forEach(function (r) {
-        const tr = domConstruct.create('tr', { style: 'border-bottom:1px solid #eee;' }, tbody);
-        domConstruct.create('td', { innerHTML: r.name, style: 'padding:4px;' }, tr);
-        domConstruct.create('td', { innerHTML: r.accession || '—', style: 'padding:4px;font-family:monospace;' }, tr);
-        domConstruct.create('td', { innerHTML: r.distance, style: 'padding:4px;' }, tr);
-        domConstruct.create('td', { innerHTML: r.pvalue, style: 'padding:4px;' }, tr);
-        const actionCell = domConstruct.create('td', { style: 'padding:4px;' }, tr);
-        const btn = domConstruct.create('button', {
-          type: 'button',
-          innerHTML: 'Use',
-          disabled: !r.accession
-        }, actionCell);
-        on(btn, 'click', function () { _self.useSimilarReference(r.accession); });
-      });
-    },
-
-    useSimilarReference: function (accession) {
-      if (!accession) return;
-      if (this.reference_mode_genbank) {
-        this.reference_mode_genbank.set('checked', true);
+    renderAutoReferenceResult: function (result) {
+      this._autoReferenceGenomeId = result.genomeId;
+      if (this.autoRefStatus) this.autoRefStatus.innerHTML = 'Best match found:';
+      if (this.autoRefResultName) this.autoRefResultName.innerHTML = result.name;
+      if (this.autoRefResultDetails) {
+        this.autoRefResultDetails.innerHTML =
+          'Genome ID: ' + result.genomeId +
+          ' &nbsp;|&nbsp; Distance: ' + result.distance.toFixed(4) +
+          ' &nbsp;|&nbsp; P-value: ' + result.pvalue.toFixed(4) +
+          (result.taxon ? '<br>' + result.taxon : '');
       }
-      if (this.reference_genbank_accession) {
-        this.reference_genbank_accession.set('value', accession);
-      }
-      if (this.similarReferenceDialog) {
-        this.similarReferenceDialog.hide();
-      }
+      if (this.autoRefResult) this.autoRefResult.style.display = 'block';
       this.checkParameterRequiredFields();
     },
 
-    closeSimilarReferenceDialog: function () {
-      if (this.similarReferenceDialog) {
-        this.similarReferenceDialog.hide();
-      }
-    },
-
     inputTypeChanged: function () {
+      const pairedBox = document.getElementById(this.id + '_pairedReadLibraryBox');
+      const singleBox = document.getElementById(this.id + '_singleReadLibraryBox');
+      const sraBox = document.getElementById(this.id + '_sraAccessionBox');
       if (this.pairedReadCheck.checked === true) {
-        document.getElementById('pairedReadLibraryBox').style.display = 'block';
-        document.getElementById('singleReadLibraryBox').style.display = 'none';
-        document.getElementById('sraAccessionBox').style.display = 'none';
+        pairedBox.style.display = 'block';
+        singleBox.style.display = 'none';
+        sraBox.style.display = 'none';
       } else if (this.singleReadCheck.checked === true) {
-        document.getElementById('pairedReadLibraryBox').style.display = 'none';
-        document.getElementById('singleReadLibraryBox').style.display = 'block';
-        document.getElementById('sraAccessionBox').style.display = 'none';
+        pairedBox.style.display = 'none';
+        singleBox.style.display = 'block';
+        sraBox.style.display = 'none';
       } else {
-        document.getElementById('pairedReadLibraryBox').style.display = 'none';
-        document.getElementById('singleReadLibraryBox').style.display = 'none';
-        document.getElementById('sraAccessionBox').style.display = 'block';
+        pairedBox.style.display = 'none';
+        singleBox.style.display = 'none';
+        sraBox.style.display = 'block';
       }
     },
 
@@ -278,7 +251,11 @@ define([
         const mode = this.getReferenceMode();
         assemblyValues.strategy = 'reference_guided';
         assemblyValues.reference_type = mode;
-        if (mode === 'genbank') {
+        if (mode === 'genome') {
+          assemblyValues.reference_genome_id = values.reference_genome_id;
+        } else if (mode === 'auto') {
+          assemblyValues.reference_genome_id = this._autoReferenceGenomeId;
+        } else if (mode === 'genbank') {
           assemblyValues.reference_genbank_accession = values.reference_genbank_accession;
         } else if (mode === 'fasta') {
           assemblyValues.reference_fasta_file = values.reference_fasta_file;
@@ -327,18 +304,19 @@ define([
           this.irma_module_row.style.display = 'none';
         }
         const mode = this.getReferenceMode();
-        if (mode === 'genbank') {
+        if (mode === 'genome') {
+          hasReference = !!(this.reference_genome_nameWidget && this.reference_genome_nameWidget.get('value'));
+        } else if (mode === 'auto') {
+          hasReference = !!this._autoReferenceGenomeId;
+        } else if (mode === 'genbank') {
           const accession = this.reference_genbank_accession && this.reference_genbank_accession.get('value');
           hasReference = this.validateGenbankAccession(accession);
           if (this.reference_genbank_accession) {
             this.reference_genbank_accession.set('state', hasReference || !accession ? '' : 'Error');
           }
         } else if (mode === 'fasta') {
-          const fastaPath = this.reference_fasta_file && this.reference_fasta_file.searchBox && this.reference_fasta_file.searchBox.get('value');
+          const fastaPath = this.reference_fasta_file && this.reference_fasta_file.get('value');
           hasReference = this.validateReferenceFastaPath(fastaPath);
-          if (this.reference_fasta_file && this.reference_fasta_file.searchBox && typeof this.reference_fasta_file.searchBox.set === 'function') {
-            this.reference_fasta_file.searchBox.set('state', hasReference || !fastaPath ? '' : 'Error');
-          }
         }
       } else {
         if (this.reference_section) {
@@ -439,10 +417,17 @@ define([
             if (jobData['output_path']) {
               this.output_path.set('value', jobData['output_path']);
             }
-            if (jobData['reference_type'] === 'fasta' && this.reference_mode_fasta) {
-              this.reference_mode_fasta.set('checked', true);
+            if (jobData['reference_type'] === 'auto' && this.reference_mode_auto) {
+              this.reference_mode_auto.set('checked', true);
+            } else if (jobData['reference_type'] === 'genome' && this.reference_mode_genome) {
+              this.reference_mode_genome.set('checked', true);
             } else if (jobData['reference_type'] === 'genbank' && this.reference_mode_genbank) {
               this.reference_mode_genbank.set('checked', true);
+            } else if (jobData['reference_type'] === 'fasta' && this.reference_mode_fasta) {
+              this.reference_mode_fasta.set('checked', true);
+            }
+            if (jobData['reference_genome_id'] && this.reference_genome_nameWidget) {
+              this.reference_genome_nameWidget.set('value', jobData['reference_genome_id']);
             }
             if (jobData['reference_genbank_accession'] && this.reference_genbank_accession) {
               this.reference_genbank_accession.set('value', jobData['reference_genbank_accession']);
