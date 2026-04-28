@@ -12,6 +12,7 @@ define([
   return declare([BorderContainer], {
     title: 'Priority Pathogen',
     isLoaded: false,
+    _loading: false,
     gutters: false,
     design: 'headline',
     _allHeaders: [],
@@ -23,7 +24,7 @@ define([
 
       this.toolbar = new ContentPane({
         region: 'left',
-        splitter: true,
+        splitter: false,
         style: 'width: 240px; min-width: 240px; max-width: 240px; padding: 0; border: none; background: transparent; overflow: visible;'
       });
       this.addChild(this.toolbar);
@@ -81,6 +82,8 @@ define([
           '.pp-actions{padding:8px 16px;display:flex;flex-direction:column;gap:8px;}',
           '.pp-reset-btn{height:30px;padding:0 12px;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer;background:#fff;color:#2c7a7b;border:1px solid #d1d5db;width:100%;}',
           '.pp-reset-btn:hover{background:#eef2f7;border-color:#2c7a7b;}',
+          '.pp-download-btn{height:30px;padding:0 12px;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer;background:#2c7a7b;color:#fff;border:1px solid #2c7a7b;width:100%;}',
+          '.pp-download-btn:hover{background:#235f60;}',
           '.pp-count{display:flex;align-items:center;gap:6px;padding:4px 0;font-size:12px;color:#6b7280;}',
           '.pp-count-badge{font-size:11px;font-weight:700;background:#2c7a7b;color:#fff;border-radius:10px;padding:1px 8px;}'
         ].join('')
@@ -216,6 +219,10 @@ define([
         type: 'button', innerHTML: 'Reset', className: 'pp-reset-btn'
       }, actionsBody);
 
+      this.downloadButton = domConstruct.create('button', {
+        type: 'button', innerHTML: 'Download CSV', className: 'pp-download-btn'
+      }, actionsBody);
+
       this.countNode = domConstruct.create('div', { className: 'pp-count' }, actionsBody);
       domConstruct.create('span', { innerHTML: 'Results' }, this.countNode);
       this.countBadgeNode = domConstruct.create('span', { className: 'pp-count-badge', innerHTML: '0' }, this.countNode);
@@ -235,6 +242,7 @@ define([
         this._populatePriorityValueOptions();
         this.applyFilters();
       }));
+      on(this.downloadButton, 'click', lang.hitch(this, this._downloadCSV));
     },
 
     _populateColumnOptions: function (headers) {
@@ -311,22 +319,46 @@ define([
         return matchesSearch && matchesPriority;
       });
 
+      this._filteredRows = filtered;
       this.grid.setGridData(this._allHeaders, filtered);
       this.countBadgeNode.innerHTML = filtered.length;
     },
 
-    _setStateAttr: function (state) {
-      this._set('state', state);
-      if (!this.isLoaded) {
-        this.loadPriorityPathogenGrid();
-      }
-    },
+    _downloadCSV: function () {
+      var headers = this._allHeaders;
+      var rows = this._filteredRows || this._allRows;
 
-    startup: function () {
-      if (this._started) {
+      if (!headers || !headers.length) {
         return;
       }
-      this.inherited(arguments);
+
+      var escapeField = function (value) {
+        var str = String(value == null ? '' : value);
+        if (str.indexOf(',') > -1 || str.indexOf('"') > -1 || str.indexOf('\n') > -1 || str.indexOf('\r') > -1) {
+          return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+      };
+
+      var lines = [headers.map(escapeField).join(',')];
+      rows.forEach(function (row) {
+        lines.push(row.map(escapeField).join(','));
+      });
+
+      var csvContent = lines.join('\r\n');
+      var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'priority_pathogens.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
+
+    _setStateAttr: function (state) {
+      this._set('state', state);
       if (!this.isLoaded) {
         this.loadPriorityPathogenGrid();
       }
@@ -378,10 +410,16 @@ define([
     },
 
     loadPriorityPathogenGrid: function () {
+      if (this._loading) {
+        return;
+      }
+      this._loading = true;
+
       xhr.get('https://www.bv-brc.org/api/content/data/human_viral_pathogens.csv', {
         headers: { accept: 'text/csv,text/plain,*/*' },
         handleAs: 'text'
       }).then(lang.hitch(this, function (csvText) {
+        this._loading = false;
         var rows = this._parseCsvText(csvText || '');
         if (!rows.length) {
           this.grid.setGridData([], []);
@@ -400,6 +438,7 @@ define([
         this.applyFilters();
         this.isLoaded = true;
       }), lang.hitch(this, function () {
+        this._loading = false;
         this._allHeaders = [];
         this._allRows = [];
         this.grid.setGridData([], []);

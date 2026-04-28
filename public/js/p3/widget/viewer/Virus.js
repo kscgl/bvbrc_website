@@ -21,6 +21,11 @@ define([
       this.inherited(arguments);
       const onVirusPage = this.state && this.state.pathname && /^\/Virus\//.test(this.state.pathname);
       this._toggleTab(this.priorityPathogen, onVirusPage, 1);
+
+      const requestedTab = this.state && this.state.hashParams && this.state.hashParams.view_tab;
+      if (onVirusPage && requestedTab === 'priorityPathogen') {
+        this.viewer.selectChild(this.priorityPathogen);
+      }
     },
     createOverviewPanel: function () {
       return new VirusOverview({
