@@ -119,14 +119,10 @@ define([
         // Expand
         domClass.remove(this.filterPanelNode, 'ptc-collapsed');
         this.expandStripNode.style.display = 'none';
-        this.toggleBtnNode.innerHTML = '&#9664;';  // ◀
-        this.toggleBtnNode.title = 'Collapse filters';
       } else {
         // Collapse
         domClass.add(this.filterPanelNode, 'ptc-collapsed');
         this.expandStripNode.style.display = 'flex';
-        this.toggleBtnNode.innerHTML = '&#9654;';  // ▶
-        this.toggleBtnNode.title = 'Expand filters';
       }
     },
 
