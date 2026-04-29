@@ -24,6 +24,26 @@ define([
     _autoReferenceGenomeId: null,
     _autoReferenceCache: null,  // { path, genomeId, name, distance, pvalue, taxon }
 
+    irmaModuleDescriptions: {
+      'FLU': 'Standard influenza assembly workflow (default)',
+      'FLU_AD': 'Broad influenza workflow supporting all types (A, B, C & D)',
+      'FLU-alt': 'Alternative parameters for difficult or atypical datasets',
+      'FLU-avian': 'Optimized for avian influenza strains',
+      'FLU-avian-residual': 'Captures low-abundance or leftover avian influenza reads',
+      'FLU-fast': 'Faster runtime for high-quality datasets',
+      'FLU-lowQC': 'Designed for lower-quality or noisy sequencing data',
+      'FLU-minion': 'Optimized for ONT long-read sequencing',
+      'FLU-pacbio': 'Optimized for PacBio long-read sequencing',
+      'FLU-pgm': 'Optimized for Ion Torrent sequencing data',
+      'FLU-roche': 'Legacy support for Roche/454 sequencing',
+      'FLU-secondary': 'Secondary refinement after initial assembly',
+      'FLU-sensitive': 'Increased sensitivity for minor variant detection',
+      'FLU-utr': 'Improved recovery of 5′ and 3′ untranslated regions',
+      'CoV': 'Coronavirus assembly workflows (SARS-CoV-2 & MERS-CoV)',
+      'RSV': 'Respiratory Syncytial Virus assembly (A & B groups)',
+      'EBOLA': 'Filovirus assembly — Zaire, Sudan, Bundibugyo, Reston, Taï Forest, Lloviu & Marburg'
+    },
+
     constructor: function () {
       this.paramToAttachPt = ['strategy', 'output_path', 'output_file', 'module'];
     },
@@ -42,6 +62,7 @@ define([
         _self.output_path.set('value', _self.defaultPath);
       }
       this.onStrategyChange();
+      this.onModuleChange();
       this._started = true;
       this.form_flag = false;
       try {
@@ -351,6 +372,13 @@ define([
         this.onReferenceModeChange();
       }
       this.checkParameterRequiredFields();
+    },
+
+    onModuleChange: function () {
+      if (!this.module_description) return;
+      const val = this.module && this.module.get('value');
+      const desc = (val && this.irmaModuleDescriptions[val]) || '';
+      this.module_description.innerHTML = desc;
     },
 
     onSRRChange: function () {

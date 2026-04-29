@@ -91,25 +91,28 @@
                 <div class="appRow" data-dojo-attach-point="irma_module_row">
                     <label class="paramlabel">Reference Database</label><br>
                     <select data-dojo-type="dijit/form/Select" name="module" data-dojo-attach-point="module"
-                            style="width:95%" required="true">
-                        <option value="FLU">FLU</option>
-                        <option value="FLU_AD">FLU AD</option>
-                        <option value="FLU-alt">FLU Alt</option>
-                        <option value="FLU-avian">FLU Avian</option>
-                        <option value="FLU-avian-residual">FLU Avian Residual</option>
-                        <option value="FLU-fast">FLU Fast</option>
-                        <option value="FLU-lowQC">FLU Low QC</option>
-                        <option value="FLU-minion">FLU ONT</option>
-                        <option value="FLU-pacbio">FLU PacBio</option>
-                        <option value="FLU-pgm">FLU PGM</option>
-                        <option value="FLU-roche">FLU Roche</option>
-                        <option value="FLU-secondary">FLU Secondary</option>
-                        <option value="FLU-sensitive">FLU Sensitive</option>
-                        <option value="FLU-utr">FLU UTR</option>
-                        <option value="CoV">CoV</option>
-                        <option value="RSV">RSV</option>
-                        <option value="EBOLA">Ebola</option>
+                            style="width:95%" required="true"
+                            data-dojo-attach-event="onChange:onModuleChange">
+                        <option value="FLU">Influenza A &amp; B</option>
+                        <option value="FLU_AD">Influenza A, B, C &amp; D</option>
+                        <option value="FLU-alt">Influenza (alt config)</option>
+                        <option value="FLU-avian">Avian Influenza A</option>
+                        <option value="FLU-avian-residual">Avian residual reads</option>
+                        <option value="FLU-fast">Influenza (fast mode)</option>
+                        <option value="FLU-lowQC">Influenza (low quality)</option>
+                        <option value="FLU-minion">Influenza Oxford Nanopore</option>
+                        <option value="FLU-pacbio">Influenza PacBio</option>
+                        <option value="FLU-pgm">Influenza Ion Torrent PGM</option>
+                        <option value="FLU-roche">Influenza Roche/454</option>
+                        <option value="FLU-secondary">Influenza post-assembly</option>
+                        <option value="FLU-sensitive">Influenza low-frequency variants</option>
+                        <option value="FLU-utr">Influenza UTR recovery</option>
+                        <option value="CoV">SARS-CoV-2 &amp; MERS-CoV</option>
+                        <option value="RSV">RSV A &amp; B groups</option>
+                        <option value="EBOLA">Filoviruses (Zaire, Sudan, Bundibugyo, Reston &amp; others)</option>
                     </select>
+                    <div data-dojo-attach-point="module_description"
+                         style="margin-top:5px; font-size:0.85em; color:#555; padding:0 2px;"></div>
                 </div>
                 <div data-dojo-attach-point="reference_section" style="display:none;">
                     <div class="appRow">
