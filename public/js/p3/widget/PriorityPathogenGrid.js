@@ -140,6 +140,9 @@ define([
           };
 
         } else if (TAXON_RANK_HEADERS.indexOf(rank) > -1) {
+          if (rank === 'species') {
+            colDef.width = 145;
+          }
           colDef.renderCell = (function (r) {
             return function (object, value) {
               if (!value || !value.trim()) {
