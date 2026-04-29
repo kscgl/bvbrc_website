@@ -41,7 +41,8 @@ define([
       'FLU-utr': 'Improved recovery of 5′ and 3′ untranslated regions',
       'CoV': 'Coronavirus assembly workflows (SARS-CoV-2 & MERS-CoV)',
       'RSV': 'Respiratory Syncytial Virus assembly (A & B groups)',
-      'EBOLA': 'Filovirus assembly — Zaire, Sudan, Bundibugyo, Reston, Taï Forest, Lloviu & Marburg'
+      'EBOLA_NON': 'Lloviu Virus and Marburg Virus',
+      'EBOLA': 'Zaire, Sudan, Bundibugyo, Reston & Taï Forest Ebolaviruses'
     },
 
     constructor: function () {
@@ -267,7 +268,7 @@ define([
       };
 
       if (values.strategy === 'irma') {
-        assemblyValues.module = values.module;
+        assemblyValues.module = values.module.startsWith('EBOLA') ? 'EBOLA' : values.module;
       } else if (values.strategy === 'reference-guided') {
         const mode = this.getReferenceMode();
         assemblyValues.strategy = 'reference_guided';
