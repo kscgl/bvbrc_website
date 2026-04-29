@@ -254,7 +254,11 @@ define([
           if (this[state.hashParams.view_tab]) {
             var vt = this[state.hashParams.view_tab];
             vt.set('visible', true);
-            this.viewer.selectChild(vt);
+            // Only select if the tab is already a child of the viewer.
+            // they will be selected in onSetTaxonomy after being added.
+            if (!vt.getParent || vt.getParent() === this.viewer) {
+              this.viewer.selectChild(vt);
+            }
           }
         }
 
@@ -291,6 +295,9 @@ define([
           }));
           break;
         case 'phylogeny':
+          activeTab.set('state', lang.mixin({}, this.state));
+          break;
+        case 'priorityPathogen':
           activeTab.set('state', lang.mixin({}, this.state));
           break;
         case 'sfvt':
