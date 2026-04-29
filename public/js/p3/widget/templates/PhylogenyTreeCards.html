@@ -328,6 +328,44 @@
 
       .treeCard:hover .treeCardHeader {
         background: #dfeceb;
+        color: rgb(52, 105, 142);
+        text-decoration: underline;
+      }
+
+      .treeCard {
+        cursor: pointer;
+      }
+
+      /* ── Card header: title with absolutely-positioned download icon ── */
+      .treeCardHeader {
+        position: relative;
+        padding-right: 28px; /* always reserve space so title width is consistent */
+      }
+
+      .treeCardDownloadBtn {
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 3px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: #2c7a7b;
+        text-decoration: none;
+        font-size: 14px !important; /* override fa-2x and any other FA size modifiers */
+        line-height: 1;
+        cursor: pointer;
+        transition: background 0.12s, border-color 0.12s;
+      }
+
+      .treeCardDownloadBtn:hover {
+        background: #d4eaea;
+        border-color: #2c7a7b;
       }
     </style>
 
