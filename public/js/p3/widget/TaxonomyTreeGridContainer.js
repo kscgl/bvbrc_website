@@ -1,22 +1,12 @@
 define([
   'dojo/_base/declare', './GridContainer',
   './TaxonomyTreeGrid', 'dijit/popup',
-  'dijit/TooltipDialog', './FacetFilterPanel',
-  'dojo/_base/lang', 'dojo/on'
+  'dijit/TooltipDialog', 'dojo/on', 'dojo/dom-class'
 ], function (
   declare, GridContainer,
   Grid, popup,
-  TooltipDialog, FacetFilterPanel,
-  lang, on
+  TooltipDialog, on, domClass
 ) {
-
-  var vfc = '<div class="wsActionTooltip" rel="dna">View FASTA DNA</div><divi class="wsActionTooltip" rel="protein">View FASTA Proteins</div>';
-  var viewFASTATT = new TooltipDialog({
-    content: vfc,
-    onMouseLeave: function () {
-      popup.close(viewFASTATT);
-    }
-  });
 
   var dfc = '<div>Download Table As...</div><div class="wsActionTooltip" rel="text/tsv">Text</div><div class="wsActionTooltip" rel="text/csv">CSV</div><div class="wsActionTooltip" rel="application/vnd.openxmlformats">Excel</div>';
   var downloadTT = new TooltipDialog({
@@ -95,7 +85,35 @@ define([
         true
       ]
     ]),
-    gridCtor: Grid
+    gridCtor: Grid,
+
+    setVirusContext: function (isVirus) {
+      domClass.toggle(this.domNode, 'no-phylo-col', !isVirus);
+    },
+
+    setPhyloManifest: function (manifest) {
+      this._pendingPhyloManifest = manifest;
+      if (this.grid) {
+        this.grid.set('phyloManifest', manifest);
+      }
+    },
+
+    setPhyloManifestData: function (data) {
+      this._pendingPhyloManifestData = data;
+      if (this.grid) {
+        this.grid.set('phyloManifestData', data);
+      }
+    },
+
+    onFirstView: function () {
+      this.inherited(arguments);
+      if (this._pendingPhyloManifest) {
+        this.grid.set('phyloManifest', this._pendingPhyloManifest);
+      }
+      if (this._pendingPhyloManifestData) {
+        this.grid.set('phyloManifestData', this._pendingPhyloManifestData);
+      }
+    }
 
   });
 });
