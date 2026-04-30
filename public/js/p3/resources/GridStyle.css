@@ -230,6 +230,15 @@
     width: 90px;
 }
 
+.TaxonTreeGrid .dgrid-cell.field-phylo_trees {
+    width: 45px;
+    text-align: center;
+}
+
+.TaxonTreeGrid.no-phylo-col .field-phylo_trees {
+    display: none;
+}
+
 .service_form {
     margin-top: 10px;
 }
