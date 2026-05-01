@@ -18,8 +18,7 @@ define([
     perspectiveLabel: 'Taxon View',
     perspectiveIconClass: 'icon-selection-Taxonomy',
 
-    _phyloIndexUrl: 'https://www.bv-brc.org/api/content/phyloxml_trees/manifest.json',
-    _phyloDataBaseUrl: 'https://www.bv-brc.org/api/content/phyloxml_trees/families/',
+    _phyloIndexUrl: 'https://www.bv-brc.org/api/content/phyloxml_trees/phylogeny-tree-groups.json',
     _phyloGateSeq: 0,
 
     postCreate: function () {
@@ -107,21 +106,16 @@ define([
       this._toggleTab(this.serology, isSpecialVirus);
 
       const seq = ++this._phyloGateSeq;
-      this._getPhyloIndex().then(lang.hitch(this, function (manifest) {
+      this._getPhyloIndex().then(lang.hitch(this, function (idx) {
         if (seq !== this._phyloGateSeq) return;
 
-        const taxonId = taxonomy.taxon_id;
-        const shouldShow = this._taxonHasPhyloData(manifest, taxonId);
+        const taxonBlock = idx && idx[taxonomy.taxon_id];
+        const shouldShow = this._taxonHasPhyloData(taxonBlock);
+
         this._toggleTab(this.phylogenyVirus, shouldShow, 1);
 
         if (shouldShow && this.phylogenyVirus) {
-          xhr.get(`${this._phyloDataBaseUrl}${taxonId}/${taxonId}.json`, {
-            handleAs: 'json'
-          }).then(lang.hitch(this, function (taxonData) {
-            if (this._phyloGateSeq === seq) {
-              this.phylogenyVirus.setTreeData(taxonData);
-            }
-          }));
+          this.phylogenyVirus.setTreeData(taxonBlock);
         }
       }));
 
@@ -465,8 +459,17 @@ define([
       return this._phyloIndexPromise;
     },
 
-    _taxonHasPhyloData: function (manifest, taxon_id) {
-      return manifest !== null && manifest.hasOwnProperty(taxon_id);
+    _taxonHasPhyloData: function (taxonBlock) {
+      if (!taxonBlock) {
+        return false;
+      }
+
+      const groups = Array.isArray(taxonBlock.groups) ? taxonBlock.groups : [];
+      return groups.some(function (g) {
+        const phy = Array.isArray(g.archaeopteryx) ? g.archaeopteryx.length : 0;
+        const nxt = Array.isArray(g.nextstrain) ? g.nextstrain.length : 0;
+        return (phy + nxt) > 0;
+      });
     },
 
     _toggleTab: function (widget, shouldShow, position) {
